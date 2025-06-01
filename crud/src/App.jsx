@@ -16,54 +16,70 @@ function App() {
   // Para aplicaciones que se editan. Null == nuevo record
   const [editingId, setEditingId] = useState(null)
 
-// (R)ead
+  // Leer aplicaciones (Read)
   const fetchApplications = async () => {
-    const { data, error } = await supabase.from('applications').select('*');
-    if (error) {
-      console.error("Error fetching data: ", error);
+    try {
+      const { data, error } = await supabase.from('applications').select('*');
+      if (error) throw error;
+      setApplications(data || []);
+    } catch (err) {
+      console.error("Error al cargar las aplicaciones:", err.message);
+      alert("Error al cargar las aplicaciones.");
       setApplications([]);
     }
-   setApplications(data || []);
   }
 
   useEffect(() => {
     fetchApplications();
   }, []);
 
-  // (C)reate
+  // Guardar o actualizar aplicacion (Create / Update)
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Si se esta editando se acutaliza el form que coincide con el id
-    if (editingId) {
-      await supabase.from('applications').update(form).eq('id', editingId);
-      setEditingId(null);
-    // Si no se esta actualizadndo solo se inseta la nueva applicacion
-    } else {
-      await supabase.from('applications').insert([form]);
+    try {
+      // Si se esta editando se actualiza el form que coincide con el id
+      if (editingId) {
+        const { error } = await supabase.from('applications').update(form).eq('id', editingId);
+        if (error) throw error;
+        alert("Aplicación actualizada correctamente.");
+        setEditingId(null);
+      // Si no se esta actualizando solo se inserta la nueva aplicacion
+      } else {
+        const { error } = await supabase.from('applications').insert([form]);
+        if (error) throw error;
+        alert("Aplicación agregada correctamente.");
+      }
+      setForm({
+        company: '',
+        position: '',
+        status: '',
+        domain: '',
+        notes: ''
+      });
+      fetchApplications();
+    } catch (err) {
+      console.error("Error al guardar la aplicación:", err.message);
+      alert("Error al guardar la aplicación.");
     }
-    setForm({
-      company: '',
-      position: '',
-      status: '',
-      domain: '',
-      notes: ''
-    });
-
-    fetchApplications();
   };
 
-  // (U)pdate
+  // Editar aplicacion (Update)
   const handleEdit = (app) => {
     setForm(app);
     setEditingId(app.id);
   };
 
-  // (D)elete
+  // Eliminar aplicacion (Delete)
   const handleDelete = async (id) => {
-    await supabase.from('applications').delete().eq('id', id);
-
-    fetchApplications();
+    try {
+      const { error } = await supabase.from('applications').delete().eq('id', id);
+      if (error) throw error;
+      alert("Aplicación eliminada correctamente.");
+      fetchApplications();
+    } catch (err) {
+      console.error("Error al eliminar la aplicación:", err.message);
+      alert("Error al eliminar la aplicación.");
+    }
   }
 
   return (
@@ -76,6 +92,7 @@ function App() {
           placeholder="Empresa"
           value={form.company}
           onChange={(e) => setForm({ ...form, company: e.target.value })}
+          required
         />
         <input
         type="text"
@@ -104,7 +121,7 @@ function App() {
           onChange={(e) => setForm({ ...form, notes: e.target.value })}
         />
         <button type="submit">
-          {editingId ? 'Update' : 'Add'}
+          {editingId ? 'Actualizar' : 'Agregar'}
         </button>
       </form>
 
